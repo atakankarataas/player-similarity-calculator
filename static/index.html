@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SIMILARITY CALCULATOR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100">
+    <div id="home" class="flex flex-col items-center justify-center h-screen">
+      <h1 class="text-6xl font-bold mb-12">SIMILARITY CALCULATOR</h1>
+      <div class="relative w-1/3">
+        <input
+          id="search"
+          type="text"
+          placeholder="Search a player..."
+          class="w-full px-4 py-3 rounded bg-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <ul
+          id="suggestions"
+          class="absolute w-full mt-1 bg-gray-800 rounded shadow-lg max-h-60 overflow-auto hidden z-10"
+        ></ul>
+      </div>
+      <div class="mt-4 flex gap-3 justify-center">
+        <input
+          id="ageMax"
+          type="number"
+          min="1"
+          placeholder="Max Age"
+          class="w-36 px-3 py-2 rounded bg-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <input
+          id="valueMax"
+          type="text"
+          placeholder="Max Value (e.g., 25m, 800k)"
+          class="w-56 px-3 py-2 rounded bg-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    </div>
+
+    <div id="dashboard" class="hidden p-8">
+      <button id="backBtn" class="text-gray-400 hover:text-gray-200 mb-6">
+        &larr; Back to Home
+      </button>
+
+      <div class="flex items-center mb-8">
+        <img
+          id="playerImg"
+          class="w-32 h-32 rounded-lg mr-8 border-2 border-gray-700"
+        />
+        <div>
+          <h2 id="playerName" class="text-4xl font-bold"></h2>
+          <p id="playerAge" class="mt-1"></p>
+          <p id="playerTeam"></p>
+          <p id="playerPosition"></p>
+          <p id="playerValue"></p>
+        </div>
+      </div>
+
+      <div class="flex flex-col lg:flex-row gap-8">
+        <div class="lg:w-1/2 bg-gray-800 rounded-lg p-4">
+          <h3 class="text-2xl font-semibold mb-4">Similar Players</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-gray-900 rounded-lg">
+              <thead>
+                <tr class="text-left text-gray-400">
+                  <th class="px-3 py-2">Avatar</th>
+                  <th class="px-3 py-2">Name</th>
+                  <th class="px-3 py-2">Age</th>
+                  <th class="px-3 py-2">Position</th>
+                  <th class="px-3 py-2">Team</th>
+                  <th class="px-3 py-2">Value</th>
+                  <th class="px-3 py-2">Sim.</th>
+                </tr>
+              </thead>
+              <tbody id="similarTable" class="divide-y divide-gray-700"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lg:w-1/2 bg-gray-800 rounded-lg p-4 flex flex-col">
+          <h3 class="text-2xl font-semibold mb-4">Comparison Radar</h3>
+          <div class="relative mb-4">
+            <select
+              id="compareSelect"
+              class="appearance-none w-full bg-gray-700 border border-gray-600 text-gray-100 py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            ></select>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3"
+            >
+              <svg
+                class="h-5 w-5 text-gray-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+          </div>
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- metricsByPosition tanımı ---
+      const metricsByPosition = {
+        forward: [
+          "Goals",
+          "Expected Goals (xG)",
+          "Assists",
+          "Expected Assists (xA)",
+          "Shots (per match)",
+          "Shots on Target (per match)",
+          "Big Chances Created",
+          "Big Chances Missed",
+          "Penalties Awarded",
+          "Successful Dribbles (per match)",
+          "Possession Won Final 3rd (per match)",
+        ],
+        midfield: [
+          "Goals",
+          "Assists",
+          "Expected Assists (xA)",
+          "Big Chances Created",
+          "Accurate Long Balls (per match)",
+          "Successful Dribbles (per match)",
+          "Possession Won Final 3rd (per match)",
+          "Successful Tackles (per match)",
+          "Interceptions (per match)",
+          "Blocks (per match)",
+          "Fouls (per match)",
+        ],
+        defense: [
+          "Successful Tackles (per match)",
+          "Clearances (per match)",
+          "Interceptions (per match)",
+          "Blocks (per match)",
+          "Fouls (per match)",
+          "Yellow Card",
+          "Red Card",
+        ],
+        goalkeeper: [
+          "Saves (per match)",
+          "Save Percentage",
+          "Clean Sheets",
+          "Goals Conceded (per match)",
+          "Goals Prevented",
+        ],
+      };
+
+      function getPositionGroup(label) {
+        const p = label.toLowerCase();
+        if (p.includes("keeper")) return "goalkeeper";
+        if (p.includes("midfield")) return "midfield";
+        if (p.includes("back") || p.includes("defender")) return "defense";
+        if (["winger", "striker", "forward"].some((x) => p.includes(x)))
+          return "forward";
+        return "midfield";
+      }
+
+      let df = [],
+        radarChartInstance = null;
+
+      async function loadData() {
+        const statsRes = await fetch("/static/player_stats.json");
+        if (!statsRes.ok) {
+          console.error("Failed to load player_stats.json:", statsRes.status);
+          return;
+        }
+        const stats = await statsRes.json();
+
+        const metaRes = await fetch("/static/player_metadata.json");
+        if (!metaRes.ok) {
+          console.error("Failed to load player_metadata.json:", metaRes.status);
+          return;
+        }
+        const meta = await metaRes.json();
+
+        const map = {};
+        meta.forEach((m) => (map[m.PlayerID] = m));
+
+        df = stats.map((s) => {
+          const m = map[s.PlayerID] || {};
+          return {
+            ...s,
+            Name: m.Name ?? s.Player,
+            Team: m.Team ?? "—",
+            PrimaryPosition: m.PrimaryPosition ?? "—",
+            MarketValue: m.MarketValue ?? "—",
+            Age: m.Age ?? "—",
+            ImageURL: s.ImageURL,
+          };
+        });
+
+        setupSearch();
+      }
+
+      function setupSearch() {
+        const inp = document.getElementById("search"),
+          sug = document.getElementById("suggestions");
+
+        inp.addEventListener("input", () => {
+          const q = inp.value.trim().toLowerCase();
+          if (!q) return sug.classList.add("hidden");
+          const list = df
+            .filter((d) => d.Name.toLowerCase().includes(q))
+            .slice(0, 10);
+          sug.innerHTML = list
+            .map(
+              (d) =>
+                `<li class="px-4 py-2 hover:bg-gray-700 cursor-pointer" data-name="${d.Name}">${d.Name}</li>`
+            )
+            .join("");
+          sug.classList.toggle("hidden", list.length === 0);
+        });
+        sug.addEventListener("click", (e) => {
+          if (e.target.tagName === "LI") showDashboard(e.target.dataset.name);
+        });
+        inp.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !sug.classList.contains("hidden")) {
+            const first = sug.querySelector("li");
+            if (first) showDashboard(first.dataset.name);
+          }
+        });
+      }
+
+      async function showDashboard(name) {
+        document.getElementById("home").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+
+        const p = df.find((d) => d.Name === name);
+        document.getElementById("playerName").textContent = p.Name;
+        document.getElementById("playerAge").textContent = `Age: ${p.Age}`;
+        document.getElementById("playerTeam").textContent = `Team: ${p.Team}`;
+        document.getElementById(
+          "playerPosition"
+        ).textContent = `Position: ${p.PrimaryPosition}`;
+        document.getElementById(
+          "playerValue"
+        ).textContent = `Market Value: ${p.MarketValue}`;
+        document.getElementById("playerImg").src = p.ImageURL;
+
+        const ageMax = document.getElementById("ageMax")?.value.trim();
+        const valueMax = document.getElementById("valueMax")?.value.trim();
+
+        const params = new URLSearchParams({
+          player_name: name,
+          top_n: "15",
+        });
+        if (ageMax) params.append("age_max", ageMax);
+        if (valueMax) params.append("value_max", valueMax);
+
+        const res = await fetch(`/players/similar?${params.toString()}`);
+        if (!res.ok) {
+          console.error("Sunucu hatası:", await res.text());
+          return;
+        }
+        const simsRaw = await res.json();
+
+        const sims = simsRaw.map((sr) => {
+          const d = df.find((e) => e.Name === sr.Name);
+          return { ...d, Similarity: sr.Similarity };
+        });
+
+        document.getElementById("similarTable").innerHTML = sims
+          .map(
+            (d) => `
+          <tr class="hover:bg-gray-700">
+            <td class="px-3 py-2"><img src="${
+              d.ImageURL
+            }" class="w-10 h-10 rounded-full"></td>
+            <td class="px-3 py-2">${d.Name}</td>
+            <td class="px-3 py-2">${d.Age}</td>
+            <td class="px-3 py-2">${d.PrimaryPosition}</td>
+            <td class="px-3 py-2">${d.Team}</td>
+            <td class="px-3 py-2">${d.MarketValue}</td>
+            <td class="px-3 py-2">${d.Similarity.toFixed(3)}</td>
+          </tr>`
+          )
+          .join("");
+
+        const select = document.getElementById("compareSelect");
+        select.innerHTML = sims
+          .map((d, i) => `<option value="${i}">${d.Name}</option>`)
+          .join("");
+        select.selectedIndex = 0;
+        renderRadar(
+          p,
+          sims[0],
+          metricsByPosition[getPositionGroup(p.PrimaryPosition)]
+        );
+        select.onchange = () => {
+          const idx = parseInt(select.value, 10);
+          renderRadar(
+            p,
+            sims[idx],
+            metricsByPosition[getPositionGroup(p.PrimaryPosition)]
+          );
+        };
+      }
+
+      function renderRadar(p, sim, METRICS) {
+        const ctx = document.getElementById("radarChart").getContext("2d");
+        if (radarChartInstance) radarChartInstance.destroy();
+        radarChartInstance = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: METRICS,
+            datasets: [
+              {
+                label: p.Name,
+                data: METRICS.map((k) => p[k] || 0),
+                fill: true,
+                backgroundColor: "rgba(99,102,241,0.2)",
+                borderColor: "rgba(99,102,241,1)",
+              },
+              {
+                label: sim.Name,
+                data: METRICS.map((k) => sim[k] || 0),
+                fill: true,
+                backgroundColor: "rgba(239,68,68,0.2)",
+                borderColor: "rgba(239,68,68,1)",
+              },
+            ],
+          },
+          options: {
+            scales: {
+              r: {
+                angleLines: { color: "#374151" },
+                grid: { color: "#374151" },
+                pointLabels: { color: "#9CA3AF" },
+                ticks: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        document.getElementById("dashboard").classList.add("hidden");
+        document.getElementById("home").classList.remove("hidden");
+        document.getElementById("search").value = "";
+        document.getElementById("suggestions").classList.add("hidden");
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>
