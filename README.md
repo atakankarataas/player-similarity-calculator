@@ -22,14 +22,14 @@ A web application for finding **similar football players** based on their statis
 ---
 
 ## 🗂 Project Structure
-
+```
 ├── static/
 │ ├── index.html # Frontend main file
 │ ├── player_stats.json # Player statistics data
 │ ├── player_metadata.json # Player identity data
 ├── main.py # FastAPI backend
 └── README.md # Project documentation
-
+```
 ---
 
 ## ⚙️ Installation & Run
