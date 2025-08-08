@@ -10,25 +10,24 @@ A web application for finding **similar football players** based on their statis
 
 ## 🚀 Features
 
-- **Search with live suggestions** for quick player selection
+- **Search with live suggestions** for player selection
 - **Cosine similarity** with **z-score normalization** for similarity calculation
-- **Position-specific metrics** for accurate comparison
+- **Position-specific metrics**
 - **Radar chart** to visualize two players' metrics
 - **Filters:**
   - Maximum age
   - Maximum market value (`25m`, `800k` format)
-- Player photos and basic information display
 
 ---
 
 ## 🗂 Project Structure
 ```
 ├── static/
-│ ├── index.html # Frontend main file
-│ ├── player_stats.json # Player statistics data
-│ ├── player_metadata.json # Player identity data
-├── main.py # FastAPI backend
-└── README.md # Project documentation
+│ ├── index.html
+│ ├── player_stats.json
+│ ├── player_metadata.json 
+├── main.py 
+└── README.md
 ```
 ---
 
